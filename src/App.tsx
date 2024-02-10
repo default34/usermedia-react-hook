@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { useUserMedia } from './useUserMediaHook';
 
 const CONSTRAINTS = {
@@ -11,68 +11,60 @@ const CONSTRAINTS = {
 };
 
 function App() {
-  const onError = (error: string) => {
-    // One of the following errors:
-    // AbortError
-    // NotAllowedError
-    // NotFoundError
-    // NotReadableError
-    // OverconstrainedError
-    // SecurityError
-    // TypeError
-
-    // https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia#exceptions
-    console.log(error);
-  };
-
   const videoRef = useRef() as React.MutableRefObject<HTMLVideoElement>;
   const canvasRef = useRef() as React.MutableRefObject<HTMLCanvasElement>;
-  const mediaStream = useUserMedia(CONSTRAINTS, onError);
   const [snapshot, setSnapshot] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-
-  const onCanPlay = () => {
-    videoRef.current?.play();
+  const [mediaStream, error] = useUserMedia(CONSTRAINTS);
+  
+  const onCanPlay = async () => {
+    await videoRef.current?.play();
   };
-
+  
   const makeSnapshot = () => {
     const video = videoRef.current;
     const canvas = canvasRef.current;
-
+    
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
-
+    
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
     ctx?.clearRect(0, 0, canvas.width, canvas.height);
     ctx?.drawImage(video, 0, 0);
-
+    
     setSnapshot(canvas.toDataURL('image/png'));
   };
-
+  
   const updateClipboard = (str: string) => {
     navigator.clipboard.writeText(str);
   };
-
+  
   useEffect(() => {
     if (mediaStream && videoRef.current && !videoRef.current.srcObject) {
       videoRef.current.srcObject = mediaStream;
     }
   }, [mediaStream]);
-
+  
   useEffect(() => {
     videoRef.current.onloadstart = () => {
       setIsLoading(true);
     };
-
+    
     videoRef.current.onloadeddata = () => {
       setIsLoading(false);
     };
-
-    videoRef.current.oncanplay = () => {
-      onCanPlay();
+    
+    videoRef.current.oncanplay = async () => {
+      await onCanPlay();
     };
   }, []);
-
+  
+  useEffect(() => {
+    if (error) {
+      console.log(error);
+    }
+  }, [error]);
+  
   return (
     <div className="h-full w-full flex p-16">
       <div className="h-full w-1/2 px-2 flex flex-col items-center">
@@ -83,9 +75,9 @@ function App() {
           ref={videoRef}
           className="w-full"
         />
-
+        
         <canvas ref={canvasRef} className="hidden"/>
-
+        
         <div className="flex justify-center mt-6">
           {!isLoading && (
             <button
@@ -95,7 +87,7 @@ function App() {
               Make snapshot
             </button>
           )}
-
+          
           {snapshot && (
             <button
               onClick={() => updateClipboard(snapshot)}
@@ -106,10 +98,10 @@ function App() {
           )}
         </div>
       </div>
-
+      
       <div className="h-full w-1/2 px-2">
-        <img src={snapshot} />
-
+        <img src={snapshot} alt="snapshot"/>
+        
         {snapshot && (
           <div
             className="mt-6 p-2 h-96 w-full break-words overflow-y-scroll
