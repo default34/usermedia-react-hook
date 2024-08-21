@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 
 export const useUserMedia = (constraints: MediaStreamConstraints) => {
   const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
-  const [error, setError] = useState<any>(null);
+  const [error, setError] = useState<DOMException | null>(null);
   
   useEffect(() => {
     const enableStream = async () => {
@@ -26,14 +26,13 @@ export const useUserMedia = (constraints: MediaStreamConstraints) => {
         setMediaStream(stream);
       } catch (error) {
         if (error instanceof DOMException) {
-          const { name, message } = error;
-          setError({ name, message });
+          setError(error);
         }
       }
     };
     
     if (!mediaStream) {
-      enableStream();
+      enableStream().then();
     }
   }, [mediaStream, constraints]);
   
@@ -49,5 +48,5 @@ export const useUserMedia = (constraints: MediaStreamConstraints) => {
     }
   }, []);
   
-  return [mediaStream, error];
+  return [mediaStream, error] as const;
 };
